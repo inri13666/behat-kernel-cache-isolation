@@ -10,7 +10,7 @@
 
 ```
         Oro\BehatExtension\KernelCacheBehatExtension\OroKernelCacheBehatExtension:
-            oro_legacy: ~ # if true then replaces ORO's behat database isolators with this one  
+            oro_legacy: ~ # if true then replaces ORO's behat kernel cache isolators with this one  
             dump_folder: ~ # default get_sys_temp_dir()
             folders:
                 - 'oro'
