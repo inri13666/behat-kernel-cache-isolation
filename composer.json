@@ -1,0 +1,28 @@
+{
+  "name": "gorgo13/behat-kernel-cache-extension",
+  "type": "behat-extension",
+  "description": "",
+  "keywords": [],
+  "homepage": "https://github.com/inri13666/behat-kernel-cache-isolation",
+  "license": "WTFPL",
+  "authors": [
+    {
+      "name": "Nikita Makarov",
+      "email": "mesaverde228@gmail.com"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "php": ">=5.4",
+    "behat/symfony2-extension": ">=2.1.1"
+  },
+  "suggest": {
+    "oro/platform": "Very flexible platform"
+  },
+  "autoload": {
+    "psr-0": {
+      "Oro\\BehatExtension\\KernelCacheBehatExtension": ""
+    }
+  },
+  "target-dir": "Oro/BehatExtension/KernelCacheBehatExtension"
+}

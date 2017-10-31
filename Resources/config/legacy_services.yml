@@ -1,0 +1,9 @@
+services:
+    oro_behat.extension.isolation.kernel_cache:
+        class: 'Oro\BehatExtension\KernelCacheBehatExtension\Legacy\OroKernelCacheBehatIsolator'
+        lazy: true
+        arguments:
+            - '@oro_kernel_cache_extension.engine.registry'
+            - '~'
+        tags:
+            - { name: 'oro_behat.isolator', priority: 100 }

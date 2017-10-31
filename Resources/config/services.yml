@@ -1,0 +1,38 @@
+services:
+    oro_kernel_cache_extension.process_executor:
+        public: false
+        class: 'Oro\BehatExtension\KernelCacheBehatExtension\Service\ProcessExecutor'
+
+    oro_kernel_cache_extension.engine.windows:
+        class: 'Oro\BehatExtension\KernelCacheBehatExtension\Isolator\WindowsKernelCacheIsolator'
+        public: false
+        arguments:
+            - '@oro_kernel_cache_extension.process_executor'
+            - ~
+
+    oro_kernel_cache_extension.engine.unix:
+        class: 'Oro\BehatExtension\KernelCacheBehatExtension\Isolator\UnixKernelCacheIsolator'
+        public: false
+        arguments:
+            - '@oro_kernel_cache_extension.process_executor'
+            - ~
+
+    oro_kernel_cache_extension.engine.registry:
+        class: 'Oro\BehatExtension\KernelCacheBehatExtension\Service\KernelCacheIsolatorRegistry'
+        lazy: true
+        calls:
+            - ['addEngine',['@oro_kernel_cache_extension.engine.windows', 'WINDOWS']]
+            - ['addEngine',['@oro_kernel_cache_extension.engine.unix', 'UNIX']]
+
+    oro_kernel_cache_extension.isolation.test_isolation_subscriber:
+        class: 'Oro\BehatExtension\KernelCacheBehatExtension\Subscriber\KernelCacheIsolationSubscriber'
+        arguments:
+            - '@oro_kernel_cache_extension.engine.registry'
+            - []
+            - ~
+        calls:
+            - ['setInput', ['@cli.input']]
+            - ['setOutput', ['@cli.output']]
+
+        tags:
+          - { name: 'event_dispatcher.subscriber', priority: -100 }
