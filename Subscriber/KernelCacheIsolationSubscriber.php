@@ -5,9 +5,9 @@ namespace Oro\BehatExtension\KernelCacheBehatExtension\Subscriber;
 use Behat\Behat\EventDispatcher\Event as BehatEvent;
 use Behat\Testwork\EventDispatcher\Event as TestWorkEvent;
 
+use Behat\Testwork\Specification\NoSpecificationsIterator;
+use Behat\Testwork\Specification\SpecificationIterator;
 use Oro\BehatExtension\KernelCacheBehatExtension\Service\KernelCacheIsolatorRegistry;
-use Oro\Component\Database\Model\DatabaseConfigurationModel;
-use Oro\Component\Database\Service\DatabaseEngineRegistry;
 
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -27,6 +27,9 @@ class KernelCacheIsolationSubscriber implements EventSubscriberInterface
 
     /** @var InputInterface */
     protected $input;
+
+    /** @var int */
+    protected $featuresCount = 0;
 
     /**
      * DatabaseIsolationSubscriber constructor.
@@ -50,8 +53,17 @@ class KernelCacheIsolationSubscriber implements EventSubscriberInterface
         ];
     }
 
-    public function beforeExercise()
+    /**
+     * @param TestWorkEvent\BeforeExerciseCompleted $event
+     */
+    public function beforeExercise(TestWorkEvent\BeforeExerciseCompleted $event)
     {
+        $this->countFeatures($event);
+
+        if (!$this->featuresCount) {
+            throw new \Exception('No Features found');
+        }
+
         $this->output->writeln('<comment>OroKernelCacheBehatExtension taking place</comment>');
 
         $engine = $this->engineRegistry->findEngine();
@@ -90,6 +102,20 @@ class KernelCacheIsolationSubscriber implements EventSubscriberInterface
             sprintf('Dump created with name "%s"', $backupName),
             OutputInterface::VERBOSITY_VERBOSE
         );
+    }
+
+    /**
+     * @param TestWorkEvent\BeforeExerciseCompleted $event
+     */
+    protected function countFeatures(TestWorkEvent\BeforeExerciseCompleted $event)
+    {
+        $iterator = $event->getSpecificationIterators();
+        /** @var SpecificationIterator $exercise */
+        foreach ($iterator as $exercise) {
+            if (!$exercise instanceof NoSpecificationsIterator) {
+                $this->featuresCount += count($exercise->getSuite()->getSetting('paths'));
+            }
+        }
     }
 
     public function afterFeature()

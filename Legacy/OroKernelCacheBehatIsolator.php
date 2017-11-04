@@ -2,13 +2,17 @@
 
 namespace Oro\BehatExtension\KernelCacheBehatExtension\Legacy;
 
+use Behat\Testwork\EventDispatcher\Event\BeforeExerciseCompleted;
+use Behat\Testwork\Specification\NoSpecificationsIterator;
+use Behat\Testwork\Specification\SpecificationIterator;
 use Oro\BehatExtension\KernelCacheBehatExtension\Isolator\KernelCacheIsolatorInterface;
 use Oro\BehatExtension\KernelCacheBehatExtension\Service\KernelCacheIsolatorRegistry;
 use Oro\Bundle\TestFrameworkBundle\Behat\Isolation;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-class OroKernelCacheBehatIsolator implements Isolation\IsolatorInterface
+class OroKernelCacheBehatIsolator implements Isolation\IsolatorInterface, EventSubscriberInterface
 {
     use ContainerAwareTrait;
 
@@ -21,10 +25,41 @@ class OroKernelCacheBehatIsolator implements Isolation\IsolatorInterface
     /** @var KernelCacheIsolatorInterface */
     protected $engine;
 
+    /** @var int */
+    protected $featuresCount = 0;
+
+    /**
+     * @param KernelCacheIsolatorRegistry $engineRegistry
+     * @param $installed
+     */
     public function __construct(KernelCacheIsolatorRegistry $engineRegistry, $installed)
     {
         $this->engineRegistry = $engineRegistry;
         $this->sid = md5($installed);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public static function getSubscribedEvents()
+    {
+        return [
+            BeforeExerciseCompleted::BEFORE => ['countFeatures', 5],
+        ];
+    }
+
+    /**
+     * @param BeforeExerciseCompleted $event
+     */
+    public function countFeatures(BeforeExerciseCompleted $event)
+    {
+        $iterator = $event->getSpecificationIterators();
+        /** @var SpecificationIterator $exercise */
+        foreach ($iterator as $exercise) {
+            if (!$exercise instanceof NoSpecificationsIterator) {
+                $this->featuresCount += count($exercise->getSuite()->getSetting('paths'));
+            }
+        }
     }
 
     /**
@@ -44,9 +79,9 @@ class OroKernelCacheBehatIsolator implements Isolation\IsolatorInterface
      */
     public function start(Isolation\Event\BeforeStartTestsEvent $event)
     {
-        $event->writeln('<info>Dumping current application cache folders</info>');
+        $event->writeln('<info>[OroKernelCacheBehatIsolator] Dumping current application cache folders</info>');
         $this->findCurrentEngine()->dump();
-        $event->writeln('<info>Dump created</info>');
+        $event->writeln('<info>[OroKernelCacheBehatIsolator] Finished</info>');
     }
 
     /**
@@ -62,7 +97,13 @@ class OroKernelCacheBehatIsolator implements Isolation\IsolatorInterface
      */
     public function afterTest(Isolation\Event\AfterIsolatedTestEvent $event)
     {
-        $this->findCurrentEngine()->restore();
+        if (1 < $this->featuresCount) {
+            $event->writeln(
+                    '<info>[OroKernelCacheBehatIsolator] Restoring kernel cache dump before next feature</info>'
+            );
+            $this->findCurrentEngine()->restore();
+            $event->writeln('<error>[OroKernelCacheBehatIsolator] Dump restored</error>');
+        }
     }
 
     /**
@@ -70,9 +111,11 @@ class OroKernelCacheBehatIsolator implements Isolation\IsolatorInterface
      */
     public function terminate(Isolation\Event\AfterFinishTestsEvent $event)
     {
+        $event->writeln('<info>[OroKernelCacheBehatIsolator] Restoring kernel cache dump</info>');
         $isolator = $this->findCurrentEngine();
         $isolator->restore();
         $isolator->drop($isolator->getBackupFolder());
+        $event->writeln('<info>[OroKernelCacheBehatIsolator] finished</info>');
     }
 
     /**
@@ -122,7 +165,7 @@ class OroKernelCacheBehatIsolator implements Isolation\IsolatorInterface
      */
     public function getName()
     {
-        return "Oro Legacy Kernel Cache Isolator";
+        return "OroKernelCacheBehatIsolator";
     }
 
     /**
